@@ -1,0 +1,87 @@
+import math
+import numpy as np
+import pandas as pd
+import numba as nb
+import statistics as st
+import matplotlib.pyplot as plt
+
+pokemons_data = pd.read_csv('pokemon.csv', decimal=',')     #Read file pokemon.csv 
+pokemons_combat = pd.read_csv('combats.csv', decimal=',')   #Read file combats.csv
+
+def dispersion(nums) -> float:
+    """
+	DOCSTRING: Counts variance
+	INPUT: Type value pandas.Series
+	OUTPUT: Type value float
+	"""
+    diffs = 0
+    avg = sum(nums)/len(nums)
+    for n in nums:
+        diffs += (n - avg)**(2)
+    return diffs/(len(nums)-1)
+
+f = lambda x, median, dispersion: math.exp(-(x-median)**2/(2*dispersion))/math.sqrt(dispersion*2*np.pi)     # This is function counts density normal destribution
+
+#---------------------Task1----------------------------
+statistic_data = pokemons_data.describe()       #Counts statistic
+statistic_data.index.name = "Statistics data"   #Set name for table
+print(statistic_data)                           #Display statistic
+
+#---------------------Task2.1--------------------------
+Attack_Defense = pokemons_data[['Attack', 'Defense']]   #Cut two columns from the main table
+Attack_Defense = Attack_Defense.sort_values('Attack')   #Sort new table on columns 'Attack' from less to more
+
+x = Attack_Defense['Attack'].values #We take values Attack
+y = Attack_Defense['Defense'].values    #We take values Defense
+
+plt.figure(figsize=(9, 6))  #Set size window
+plt.plot(x, y, label='Defence(Attack)') #Set data for axis x,y 
+plt.legend(loc='best')  #Set legend
+plt.xlabel("Attack")    #Set name x axis
+plt.ylabel("Defense")   #Set name y axis
+plt.title("Ratio betwen Attack and Defense")    #Set name title
+plt.show()  #show window with graph
+
+#----------------------Task2.2--------------------------
+print("The best ratio Attack Defense")
+pokemons_data['Ratio_Atck_Def'] = pokemons_data['Attack'] / pokemons_data['Defense']    #Add new columns from the main table pokemons_data equal ratio Attack and Dfense
+print(pokemons_data.sort_values('Ratio_Atck_Def', ascending=False).iloc[:3])    #Sorting table for columns Ratio_Atck_Def from more to less then display 3 values
+
+#----------------------Task2.3--------------------------
+print("Worst ratio Attack Defense")
+print(pokemons_data.sort_values('Ratio_Atck_Def', ascending=True).iloc[:3]) #Sorting table for columns Ratio_Atck_Def from less to more then display 3 values
+
+#----------------------Task2.4--------------------------
+pokemons_data['Count_Win'] = 0  #Add new columns and set values 0
+Win = pokemons_combat['Winner'].value_counts()  #Create object pandas.Series whose values equal count win 
+
+for i in Win.index: #In the table we write down the number of victories of each pokemon
+     pokemons_data.at[i-1,'Count_Win'] = Win[i] 
+
+pokemons_data.index.name = 'Ten Winner' #Set name table
+print(pokemons_data.sort_values('Count_Win', ascending=False).iloc[:10])    #Sorting table for columns Count_Win from more to less then display 10 values
+
+#----------------------Task3-----------------------------
+Pokemons_Grass = pokemons_data[((pokemons_data['Class 1'] == 'Grass') & (pokemons_data['Class 2'] != 'Rock')) | ((pokemons_data['Class 1'] != 'Rock') & (pokemons_data['Class 2'] == 'Grass'))] #Create new table whose values Class equal Grass
+Pokemons_Rock = pokemons_data[((pokemons_data['Class 1'] == 'Rock') & (pokemons_data['Class 2'] != 'Grass')) | ((pokemons_data['Class 1'] != 'Grass') & (pokemons_data['Class 2'] == 'Rock'))]  #Create new table whose values Class equal Rock
+
+median_Grass = st.median(Pokemons_Grass['Attack'])  #Counts median for columns Attack for Grass
+despersion_Grass = dispersion(Pokemons_Grass['Attack']) #Counts dispersion for columns Attack for Grass 
+median_Rock = st.median(Pokemons_Rock['Attack'])    #Counts median for columns Attack for Rock
+despersion_Rock =  dispersion(Pokemons_Rock['Attack'])  #Counts dispersion for columns Attack for Rock
+
+x = np.linspace(0, 150, 15) #Set values axis x
+
+y_Grass = [f(i, median_Grass, despersion_Grass) for i in x] #Count function density for Grass
+y_Rock = [f(i,  median_Rock, despersion_Rock) for i in x]   #Count function density for Rock
+
+plt.figure(figsize=(9, 6))  #Set size window
+plt.plot(x, y_Grass, 'b-', label='Grass')   #Set data for axis x,y for Grass
+plt.plot(x, y_Rock, 'r-', label='Rock')     #Set data for axis x,y for Rock
+plt.legend(loc='best')  #Set legend
+plt.xlabel("Attack")    #Set name axis x
+plt.ylabel("Destribution density")  #Set name axis y 
+plt.title("Graph density Attack")   #Set name title
+plt.show()  #Show 2 graph
+
+print("Work successfully done")
